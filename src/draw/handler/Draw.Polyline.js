@@ -41,7 +41,8 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		showLength: true, // Whether to display distance in the tooltip
 		zIndexOffset: 2000, // This should be > than the highest z-index any map layers
 		factor: 1, // To change distance calculation
-		maxPoints: 0 // Once this number of points are placed, finish shape
+		maxPoints: 0, // Once this number of points are placed, finish shape
+        snapDistance: 5 // 吸附于垂直和水平线(度)
 	},
 
 	// @method initialize(): void
@@ -88,10 +89,10 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 				this._mouseMarker = L.marker(this._map.getCenter(), {
 					icon: L.divIcon({
 						className: 'leaflet-mouse-marker',
-						iconAnchor: [20, 20],
-						iconSize: [40, 40]
+						iconAnchor: [10, 10],
+						iconSize: [20, 20]
 					}),
-					opacity: 0,
+					opacity: 0.7,
 					zIndexOffset: this.options.zIndexOffset
 				});
 			}
@@ -240,8 +241,24 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		}
 	},
 
+    _snapping: function(prevPos, newPos) {
+        var snapDistance = this.options.snapDistance;
+        var deg = Math.atan((newPos.y - prevPos.y) / (newPos.x - prevPos.x)) * 360 / (2 * Math.PI);
+        if ((0 <= Math.abs(deg - 0) && Math.abs(deg - 0) <= snapDistance) || ((0 <= Math.abs(deg - 180) && Math.abs(deg - 180) <= snapDistance) || (0 <= Math.abs(deg - 180 + 360) && Math.abs(deg - 180 + 360) <= snapDistance))) {
+            return { x: newPos.x, y: prevPos.y };
+        } else if((0 <= Math.abs(deg - 90) && Math.abs(deg - 90) <= snapDistance) || (0 <= Math.abs(deg - 270 + 360) && Math.abs(deg - 270 + 360) <= snapDistance)) {
+            return { x: prevPos.x, y: newPos.y };
+        };
+        return newPos;
+    },
+
 	_onMouseMove: function (e) {
 		var newPos = this._map.mouseEventToLayerPoint(e.originalEvent);
+		if (Array.isArray(this._markers) && this._markers.length > 0) {
+		    var prevPos = this._map.latLngToLayerPoint(this._markers[this._markers.length - 1].getLatLng());
+            newPos = this._snapping(prevPos, newPos);
+		}
+
 		var latlng = this._map.layerPointToLatLng(newPos);
 
 		// Save latlng
@@ -290,6 +307,14 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		var originalEvent = e.originalEvent;
 		var clientX = originalEvent.clientX;
 		var clientY = originalEvent.clientY;
+        
+        var newPos = e.layerPoint;
+        if (Array.isArray(this._markers) && this._markers.length > 0) {
+		    var prevPos = this._map.latLngToLayerPoint(this._markers[this._markers.length - 1].getLatLng());
+            newPos = this._snapping(prevPos, newPos);
+            e.latlng = this._map.layerPointToLatLng(newPos);
+		}
+
 		this._endPoint.call(this, clientX, clientY, e);
 		this._clickHandled = null;
 	},
@@ -315,19 +340,30 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 	// ontouch prevented by clickHandled flag because some browsers fire both click/touch events,
 	// causing unwanted behavior
 	_onTouch: function (e) {
-		var originalEvent = e.originalEvent;
-		var clientX;
-		var clientY;
-		if (originalEvent.touches && originalEvent.touches[0] && !this._clickHandled && !this._touchHandled && !this._disableMarkers) {
-			clientX = originalEvent.touches[0].clientX;
-			clientY = originalEvent.touches[0].clientY;
-			this._disableNewMarkers();
-			this._touchHandled = true;
-			this._startPoint.call(this, clientX, clientY);
-			this._endPoint.call(this, clientX, clientY, e);
-			this._touchHandled = null;
-		}
-		this._clickHandled = null;
+		// var originalEvent = e.originalEvent;
+		// var clientX;
+		// var clientY;
+		// if (originalEvent.touches && originalEvent.touches[0] && !this._clickHandled && !this._touchHandled && !this._disableMarkers) {
+		// 	clientX = originalEvent.touches[0].clientX;
+		// 	clientY = originalEvent.touches[0].clientY;
+		// 	this._disableNewMarkers();
+		// 	this._touchHandled = true;
+
+            // var newPos = { x: clientX, y: clientY };
+            // if (Array.isArray(this._markers) && this._markers.length > 0) {
+            //     var prevPos = this._map.latLngToLayerPoint(this._markers[this._markers.length - 1].getLatLng());
+            //     newPos = this._snapping(prevPos, newPos);
+            //     e.latlng = this._map.layerPointToLatLng(newPos);
+            // }
+            // this._startPoint.call(this, newPos.x, newPos.y);
+            // this._endPoint.call(this, newPos.x, newPos.y, e);
+
+			
+			// this._startPoint.call(this, clientX, clientY);
+			// this._endPoint.call(this, clientX, clientY, e);
+		// 	this._touchHandled = null;
+		// }
+		// this._clickHandled = null;
 	},
 
 	_onMouseOut: function () {

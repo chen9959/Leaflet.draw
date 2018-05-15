@@ -240,6 +240,11 @@
 .leaflet-mouse-marker {
 	background-color: #fff;
 	cursor: crosshair;
+	border-radius: 10px;
+}
+
+.leaflet-div-icon.leaflet-editing-icon {
+  border-radius: 10px;
 }
 
 .leaflet-draw-tooltip {
