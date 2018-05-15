@@ -42,7 +42,7 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		zIndexOffset: 2000, // This should be > than the highest z-index any map layers
 		factor: 1, // To change distance calculation
 		maxPoints: 0, // Once this number of points are placed, finish shape
-        snapDistance: 5 // 吸附于垂直和水平线(度)
+        snapDistance: 10 // 触发吸附于垂直或水平线最大距离 (px)
 	},
 
 	// @method initialize(): void
@@ -64,6 +64,9 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		this.type = L.Draw.Polyline.TYPE;
 
 		L.Draw.Feature.prototype.initialize.call(this, map, options);
+
+        this._keyUp = this._keyUp.bind(this);
+        this._keyDown = this._keyDown.bind(this);
 	},
 
 	// @method addHooks(): void
@@ -110,6 +113,9 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 				.on('zoomlevelschange', this._onZoomEnd, this)
 				.on('touchstart', this._onTouch, this)
 				.on('zoomend', this._onZoomEnd, this);
+            
+            window.onkeydown = this._keyDown;
+            window.onkeyup = this._keyUp;
 
 		}
 	},
@@ -149,6 +155,9 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 			.off('zoomend', this._onZoomEnd, this)
 			.off('touchstart', this._onTouch, this)
 			.off('click', this._onTouch, this);
+
+        window.onkeydown = this._keyDown;
+        window.onkeyup = this._keyUp;
 	},
 
 	// @method deleteLastVertex(): void
@@ -229,7 +238,7 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		}
 	},
 
-	// Called to verify the shape is valid when the user tries to finish it
+	// `Call`ed to verify the shape is valid when the user tries to finish it
 	// Return false if the shape is not valid
 	_shapeIsValid: function () {
 		return true;
@@ -241,23 +250,9 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		}
 	},
 
-    _snapping: function(prevPos, newPos) {
-        var snapDistance = this.options.snapDistance;
-        var deg = Math.atan((newPos.y - prevPos.y) / (newPos.x - prevPos.x)) * 360 / (2 * Math.PI);
-        if ((0 <= Math.abs(deg - 0) && Math.abs(deg - 0) <= snapDistance) || ((0 <= Math.abs(deg - 180) && Math.abs(deg - 180) <= snapDistance) || (0 <= Math.abs(deg - 180 + 360) && Math.abs(deg - 180 + 360) <= snapDistance))) {
-            return { x: newPos.x, y: prevPos.y };
-        } else if((0 <= Math.abs(deg - 90) && Math.abs(deg - 90) <= snapDistance) || (0 <= Math.abs(deg - 270 + 360) && Math.abs(deg - 270 + 360) <= snapDistance)) {
-            return { x: prevPos.x, y: newPos.y };
-        };
-        return newPos;
-    },
-
 	_onMouseMove: function (e) {
 		var newPos = this._map.mouseEventToLayerPoint(e.originalEvent);
-		if (Array.isArray(this._markers) && this._markers.length > 0) {
-		    var prevPos = this._map.latLngToLayerPoint(this._markers[this._markers.length - 1].getLatLng());
-            newPos = this._snapping(prevPos, newPos);
-		}
+        newPos = this._snapping(newPos);
 
 		var latlng = this._map.layerPointToLatLng(newPos);
 
@@ -308,12 +303,8 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		var clientX = originalEvent.clientX;
 		var clientY = originalEvent.clientY;
         
-        var newPos = e.layerPoint;
-        if (Array.isArray(this._markers) && this._markers.length > 0) {
-		    var prevPos = this._map.latLngToLayerPoint(this._markers[this._markers.length - 1].getLatLng());
-            newPos = this._snapping(prevPos, newPos);
-            e.latlng = this._map.layerPointToLatLng(newPos);
-		}
+        var newPos = this._snapping(e.layerPoint);
+        e.latlng = this._map.layerPointToLatLng(newPos);
 
 		this._endPoint.call(this, clientX, clientY, e);
 		this._clickHandled = null;
@@ -340,30 +331,24 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 	// ontouch prevented by clickHandled flag because some browsers fire both click/touch events,
 	// causing unwanted behavior
 	_onTouch: function (e) {
-		// var originalEvent = e.originalEvent;
-		// var clientX;
-		// var clientY;
-		// if (originalEvent.touches && originalEvent.touches[0] && !this._clickHandled && !this._touchHandled && !this._disableMarkers) {
-		// 	clientX = originalEvent.touches[0].clientX;
-		// 	clientY = originalEvent.touches[0].clientY;
-		// 	this._disableNewMarkers();
-		// 	this._touchHandled = true;
+		var originalEvent = e.originalEvent;
+		var clientX;
+		var clientY;
+		if (originalEvent.touches && originalEvent.touches[0] && !this._clickHandled && !this._touchHandled && !this._disableMarkers) {
+			clientX = originalEvent.touches[0].clientX;
+			clientY = originalEvent.touches[0].clientY;
+			this._disableNewMarkers();
+			this._touchHandled = true;
 
-            // var newPos = { x: clientX, y: clientY };
-            // if (Array.isArray(this._markers) && this._markers.length > 0) {
-            //     var prevPos = this._map.latLngToLayerPoint(this._markers[this._markers.length - 1].getLatLng());
-            //     newPos = this._snapping(prevPos, newPos);
-            //     e.latlng = this._map.layerPointToLatLng(newPos);
-            // }
-            // this._startPoint.call(this, newPos.x, newPos.y);
-            // this._endPoint.call(this, newPos.x, newPos.y, e);
+            var newPos = this._snapping(e.layerPoint);
+            e.latlng = this._map.layerPointToLatLng(newPos);
 
 			
-			// this._startPoint.call(this, clientX, clientY);
-			// this._endPoint.call(this, clientX, clientY, e);
-		// 	this._touchHandled = null;
-		// }
-		// this._clickHandled = null;
+			this._startPoint.call(this, clientX, clientY);
+			this._endPoint.call(this, clientX, clientY, e);
+			this._touchHandled = null;
+		}
+		this._clickHandled = null;
 	},
 
 	_onMouseOut: function () {
@@ -624,5 +609,32 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 	_fireCreatedEvent: function () {
 		var poly = new this.Poly(this._poly.getLatLngs(), this.options.shapeOptions);
 		L.Draw.Feature.prototype._fireCreatedEvent.call(this, poly);
-	}
+	},
+
+    _snapping: function(newPos) {
+        if (!Array.isArray(this._markers) || this._markers.length == 0 || !this.isSnapEnable) {
+            return newPos;
+        }
+        var prevPos = this._map.latLngToLayerPoint(this._markers[this._markers.length - 1].getLatLng());
+        var snapDistance = this.options.snapDistance;
+        if (Math.abs(newPos.x - prevPos.x) <= snapDistance) {
+            newPos.x = prevPos.x;
+        } else if (Math.abs(newPos.y - prevPos.y) <= snapDistance) {
+            newPos.y = prevPos.y;
+        }
+        return newPos;
+    },
+
+    _keyDown: function(e) {
+        if (e.key == "Shift") {
+            this.isSnapEnable = true;
+        }
+    },
+
+    _keyUp: function(e) {
+        if (e.key == "Shift") {
+            this.isSnapEnable = false;
+        }
+    },
+
 });
