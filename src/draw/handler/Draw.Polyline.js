@@ -156,8 +156,8 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 			.off('touchstart', this._onTouch, this)
 			.off('click', this._onTouch, this);
 
-        window.onkeydown = this._keyDown;
-        window.onkeyup = this._keyUp;
+        window.onkeydown = null;
+        window.onkeyup = null;
 	},
 
 	// @method deleteLastVertex(): void
