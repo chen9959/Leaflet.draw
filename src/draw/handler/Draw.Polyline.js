@@ -114,8 +114,12 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 				.on('touchstart', this._onTouch, this)
 				.on('zoomend', this._onZoomEnd, this);
             
-            window.onkeydown = this._keyDown;
-            window.onkeyup = this._keyUp;
+            // window.onkeydown = this._keyDown;
+            // window.onkeyup = this._keyUp;
+
+            var mapContainer = this._map.getContainer();
+            mapContainer.onkeydown = this._keyDown;
+            mapContainer.onkeyup = this._keyUp;
 
 		}
 	},
@@ -156,8 +160,12 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 			.off('touchstart', this._onTouch, this)
 			.off('click', this._onTouch, this);
 
-        window.onkeydown = null;
-        window.onkeyup = null;
+        // window.onkeydown = null;
+        // window.onkeyup = null;
+
+        var mapContainer = this._map.getContainer();
+        mapContainer.onkeydown = null;
+        mapContainer.onkeyup = null;
 	},
 
 	// @method deleteLastVertex(): void
