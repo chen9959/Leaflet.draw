@@ -548,9 +548,11 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 
 		// Calculate the distance from the last fixed point to the mouse position based on the version
 		if (L.GeometryUtil.isVersion07x()) {
-			distance = previousLatLng && currentLatLng && currentLatLng.distanceTo ? this._measurementRunningTotal + currentLatLng.distanceTo(previousLatLng) * (this.options.factor || 1) : this._measurementRunningTotal || 0;
+			// distance = previousLatLng && currentLatLng && currentLatLng.distanceTo ? this._measurementRunningTotal + currentLatLng.distanceTo(previousLatLng) * (this.options.factor || 1) : this._measurementRunningTotal || 0;
+			distance = previousLatLng && currentLatLng && currentLatLng.distanceTo ? currentLatLng.distanceTo(previousLatLng) * (this.options.factor || 1) : 0;
 		} else {
-			distance = previousLatLng && currentLatLng ? this._measurementRunningTotal + this._map.distance(currentLatLng, previousLatLng) * (this.options.factor || 1) : this._measurementRunningTotal || 0;
+			// distance = previousLatLng && currentLatLng ? this._measurementRunningTotal + this._map.distance(currentLatLng, previousLatLng) * (this.options.factor || 1) : this._measurementRunningTotal || 0;
+			distance = previousLatLng && currentLatLng ? this._map.distance(currentLatLng, previousLatLng) * (this.options.factor || 1) : 0;
 		}
 
 		return L.GeometryUtil.readableDistance(distance, this.options.metric, this.options.feet, this.options.nautic, this.options.precision);
